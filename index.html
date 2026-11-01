@@ -96,13 +96,19 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 /* =====================================================================
-   CONFIGURAÇÃO: cole aqui os dados do seu projeto Supabase
-   (Project Settings > API). Use a chave "anon public", nunca a "service_role".
+   CONFIGURAÇÃO
+   URL: só o endereço do projeto, sem /rest/v1 e sem barra no final.
+   Chave: a "anon public" (Project Settings > API). Nunca a "service_role".
    ===================================================================== */
-const SUPABASE_URL = "https://rfefpkfmkjjbnumqbnmr.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://rfefpkfmkjjbnumqbnmr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmZWZwa2Zta2pqYm51bXFibm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0OTIyOTUsImV4cCI6MjEwOTA2ODI5NX0.E0hccAHxovQXk8zPVkENRYnAq5U-Ja2IjDrtuwSjorA";
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const URL_PROJETO = (SUPABASE_URL || "").trim().replace(/\/+$/, "");
+const CHAVE_PROJETO = (SUPABASE_KEY || "").trim();
+const URL_VALIDA = /^https:\/\/[a-z0-9]+\.supabase\.co$/.test(URL_PROJETO);
+const CHAVE_VALIDA = CHAVE_PROJETO.length > 20 && !/\s/.test(CHAVE_PROJETO);
+const configOk = URL_VALIDA && CHAVE_VALIDA;
+const sb = configOk ? window.supabase.createClient(URL_PROJETO, CHAVE_PROJETO) : null;
 
 // Estrutura inicial de um sistema novo
 const ESTRUTURA_PADRAO = {
@@ -147,10 +153,17 @@ const $ = s => document.querySelector(s);
 let me = null;               // usuário logado: {id, nome}
 let sistemas = [];           // sistemas em que sou jogador
 let meusSistemas = [];       // sistemas que eu mestro
-let jogSis = null;           // id do sistema escolhido na área do Jogador
-let mestreSis = null;        // id do sistema escolhido na área do Mestre
-let cacheM = null;           // dados do Mestre em memória: {membros, fichas}
+let jogSis = null;           // sistema escolhido na área do Jogador
+let mestreSis = null;        // sistema escolhido na área do Mestre
+let cacheM = null;           // dados do Mestre em memória
+let telaFicha = null;        // id da ficha aberta (null = está em uma lista)
+let fichaAtual = null;       // {sheet, sis, opts} da ficha aberta
+let canalTempoReal = null;
+let modoRecuperacao = false; // true enquanto o usuário redefine a senha
+const enviados = new Set();  // JSON das fichas que eu mesmo salvei
 const timers = {};
+
+const norm = o => JSON.stringify(o ?? {});
 
 function h(tag, attrs = {}, ...kids) {
   const e = document.createElement(tag);
@@ -192,7 +205,7 @@ function area(label, valor, onInput) {
     h("textarea", { rows: "4", value: valor ?? "", oninput: e => onInput(e.target.value) }));
 }
 
-// Salva depois de uma pausa na digitação (evita um salvamento por tecla)
+// Salva depois de uma pausa na digitação
 function salvarDepois(chave, fn) {
   clearTimeout(timers[chave]);
   timers[chave] = setTimeout(fn, 600);
@@ -225,14 +238,22 @@ function validar(e) {
 }
 
 /* =====================================================================
-   LOGIN
+   LOGIN E INÍCIO
    ===================================================================== */
 async function iniciar() {
-  if (SUPABASE_URL.startsWith("COLE_")) {
+  if (!configOk) {
+    const motivo = !URL_VALIDA
+      ? `A URL está errada. Ela deve ser exatamente assim: https://nome-do-projeto.supabase.co (sem /rest/v1 e sem barra no final). Valor atual: "${URL_PROJETO}"`
+      : "A chave está errada. Use a chave anon public, sem espaços.";
     $("#view").replaceChildren(h("div", { class: "card" },
-      h("h2", {}, "Configuração pendente"),
-      h("p", {}, "Abra o index.html e cole a URL e a chave anon do seu projeto Supabase no topo do script.")));
+      h("h2", {}, "Configuração incorreta"),
+      h("p", {}, motivo),
+      h("p", { class: "dica" }, "Corrija SUPABASE_URL ou SUPABASE_KEY no topo do script e atualize a página.")));
     return;
+  }
+  if (location.hash.includes("type=recovery")) {
+    modoRecuperacao = true;
+    return telaNovaSenha();
   }
   const { data: { session } } = await sb.auth.getSession();
   if (session) await entrarNoApp(session.user);
@@ -267,13 +288,42 @@ function telaLogin() {
     h("h1", {}, "Entrar"),
     email, senha,
     h("button", { class: "primary", onclick: entrar }, "Entrar"),
+    h("button", { onclick: () => recuperarSenha(email.value) }, "Esqueci minha senha"),
     h("hr", { style: "width:100%;border-color:#4a2a25" }),
     h("h2", {}, "Criar conta"),
     nome,
     h("button", { onclick: cadastrar }, "Criar conta")));
 }
 
+function recuperarSenha(email) {
+  const em = (email || "").trim();
+  if (!em) return alert("Digite seu e-mail no campo acima.");
+  sb.auth.resetPasswordForEmail(em, { redirectTo: location.origin + location.pathname })
+    .then(({ error }) => alert(error
+      ? "Não foi possível enviar: " + error.message
+      : "Enviamos um link de redefinição para o seu e-mail."));
+}
+
+function telaNovaSenha() {
+  $("#tabs").style.display = "none";
+  const senha = h("input", { type: "password", placeholder: "Nova senha (mínimo 6 caracteres)" });
+  const salvar = async () => {
+    const { error } = await sb.auth.updateUser({ password: senha.value });
+    if (error) return alert(error.message);
+    modoRecuperacao = false;
+    alert("Senha alterada!");
+    const { data: { user } } = await sb.auth.getUser();
+    history.replaceState(null, "", location.pathname);
+    await entrarNoApp(user);
+  };
+  $("#view").replaceChildren(h("div", { class: "login card" },
+    h("h1", {}, "Nova senha"),
+    senha,
+    h("button", { class: "primary", onclick: salvar }, "Salvar nova senha")));
+}
+
 async function entrarNoApp(user) {
+  if (modoRecuperacao) return;
   const { data: perfil } = await sb.from("profiles").select("nome").eq("id", user.id).maybeSingle();
   me = { id: user.id, nome: perfil?.nome || user.email };
   $("#navUser").replaceChildren(
@@ -282,8 +332,53 @@ async function entrarNoApp(user) {
   $("#tabs").style.display = "flex";
   $("#tabJog").onclick = showJogador;
   $("#tabMestre").onclick = showMestre;
+  ligarTempoReal();
   showJogador();
 }
+
+/* =====================================================================
+   TEMPO REAL
+   Atualiza listas quando algo muda em outro computador.
+   Se outra pessoa mexer na ficha aberta, aparece um aviso com botão de recarregar.
+   ===================================================================== */
+function ligarTempoReal() {
+  if (canalTempoReal) sb.removeChannel(canalTempoReal);
+  let timer;
+  const atualizarListas = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (telaFicha) return;
+      $("#tabMestre").classList.contains("on") ? showMestre() : showJogador();
+    }, 400);
+  };
+  const aoMudarFicha = p => {
+    if (!telaFicha) return atualizarListas();
+    if (p.eventType !== "UPDATE" || p.new.id !== telaFicha) return;
+    if (enviados.has(norm(p.new.data))) return;
+    mostrarAviso();
+  };
+  canalTempoReal = sb.channel("hub-fichas")
+    .on("postgres_changes", { event: "*", schema: "public", table: "sheets" }, aoMudarFicha)
+    .on("postgres_changes", { event: "*", schema: "public", table: "memberships" }, atualizarListas)
+    .subscribe();
+}
+
+function mostrarAviso() {
+  if ($("#aviso")) return;
+  $("#view").prepend(h("div", { id: "aviso", class: "card", style: "border-color:#c8382b" },
+    h("span", {}, "Esta ficha foi alterada por outra pessoa. "),
+    h("button", { onclick: async () => {
+      const { data } = await sb.from("sheets").select("*").eq("id", telaFicha).single();
+      if (data && fichaAtual) renderFicha(data, fichaAtual.sis, fichaAtual.opts);
+    } }, "Recarregar ficha")));
+}
+
+sb?.auth.onAuthStateChange(event => {
+  if (event === "PASSWORD_RECOVERY") {
+    modoRecuperacao = true;
+    telaNovaSenha();
+  }
+});
 
 /* =====================================================================
    DADOS
@@ -306,7 +401,9 @@ async function carregarSistemas() {
    ===================================================================== */
 async function showJogador() {
   setTab("jog");
+  telaFicha = null;
   await carregarSistemas();
+
   const codigo = h("input", { placeholder: "Código de convite do Mestre" });
   const entrarCodigo = async () => {
     const code = codigo.value.trim();
@@ -398,11 +495,13 @@ function barra(b, d, mudou) {
 
   draw();
   return h("div", { class: "poolbox" },
-    h("div", { class: "poolhead" }, h("span", { class: "lbl" }, b.name || b.nome), maxEl), pips);
+    h("div", { class: "poolhead" }, h("span", { class: "lbl" }, b.nome), maxEl), pips);
 }
 
 function renderFicha(sheet, sis, opts = {}) {
   if (!sis) return alert("Sistema não encontrado.");
+  fichaAtual = { sheet, sis, opts };
+  telaFicha = sheet.id;
   sheet.data ||= {};
   const d = sheet.data;
   const E = sis.structure;
@@ -410,6 +509,7 @@ function renderFicha(sheet, sis, opts = {}) {
   const mudou = () => {
     marcarSalvo("Salvando…");
     salvarDepois("ficha" + sheet.id, async () => {
+      enviados.add(norm(sheet.data));
       const { error } = await sb.from("sheets").update({ name: sheet.name, data: sheet.data }).eq("id", sheet.id);
       marcarSalvo(error ? "Erro ao salvar: " + error.message : "Salvo ✔");
     });
@@ -440,6 +540,7 @@ function renderFicha(sheet, sis, opts = {}) {
    ===================================================================== */
 async function showMestre() {
   setTab("mestre");
+  telaFicha = null;
   await carregarSistemas();
 
   const cabecalho = h("div", { class: "cabecalho" },
@@ -452,9 +553,6 @@ async function showMestre() {
     return;
   }
 
-  const seletor = h("select", { class: "sel", onchange: e => { mestreSis = e.target.value; showMestre(); } },
-    ...meusSistemas.map(s => h("option", { value: s.id, selected: s.id === mestreSis }, s.name)));
-
   const [{ data: membros }, { data: fichas, error }] = await Promise.all([
     sb.from("memberships").select("user_id, profiles(nome)").eq("system_id", mestreSis),
     sb.from("sheets").select("*, profiles(nome)").eq("system_id", mestreSis).order("created_at")
@@ -462,24 +560,24 @@ async function showMestre() {
   if (error) return alert("Erro ao carregar fichas: " + error.message);
 
   cacheM = { membros: membros || [], fichas: fichas || [] };
-  $("#view").dataset.sistema = mestreSis;
-  desenharMestre(seletor, cabecalho);
+  desenharMestre();
 }
 
 function cur() { return meusSistemas.find(s => s.id === mestreSis); }
 
-function desenharMestre(seletor, cabecalho) {
+function desenharMestre() {
   const sis = cur();
   if (!sis) return;
   const E = sis.structure;
   const { membros, fichas } = cacheM;
-  seletor = seletor || h("select", { class: "sel", onchange: e => { mestreSis = e.target.value; showMestre(); } },
+
+  const seletor = h("select", { class: "sel", onchange: e => { mestreSis = e.target.value; showMestre(); } },
     ...meusSistemas.map(s => h("option", { value: s.id, selected: s.id === sis.id }, s.name)));
-  cabecalho = cabecalho || h("div", { class: "cabecalho" },
+
+  const cabecalho = h("div", { class: "cabecalho" },
     h("h1", {}, "Área do Mestre"),
     h("button", { class: "primary", onclick: novoSistema }, "+ Novo sistema"));
 
-  // ---- gestão do sistema ----
   const gestao = h("div", { class: "card" },
     h("h2", {}, "Sistema"),
     h("div", { class: "linha" }, seletor,
@@ -493,7 +591,6 @@ function desenharMestre(seletor, cabecalho) {
         marcarSalvo("Código copiado");
       } }, "Copiar")));
 
-  // ---- membros ----
   const blocoMembros = h("div", { class: "card" },
     h("h2", {}, `Jogadores (${membros.length})`),
     membros.length
@@ -509,7 +606,6 @@ function desenharMestre(seletor, cabecalho) {
             } }, "Remover"))))
       : h("p", { class: "vazio" }, "Nenhum jogador ainda. Envie o código de convite."));
 
-  // ---- editor visual da ficha ----
   const renderTexto = arr => (item, i) =>
     h("input", { value: item, placeholder: "nome do campo", oninput: e => { arr[i] = e.target.value; salvarEstrutura(sis); } });
 
@@ -600,7 +696,6 @@ function desenharMestre(seletor, cabecalho) {
       h("section", { class: "card" }, h("h2", {}, "Detalhes (textos)"),
         listaEditavel(E.textos, renderTexto(E.textos), () => nomeUnico("Novo campo de texto", E.textos, x => x)))));
 
-  // ---- fichas do sistema (todos os jogadores) ----
   const listaFichas = h("div", {},
     h("h3", { class: "sec-titulo" }, `Fichas de "${sis.name}" (${fichas.length})`),
     fichas.length
