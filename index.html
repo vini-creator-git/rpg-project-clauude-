@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hub de Fichas</title>
+<style>
+  :root{ --bg:#121212; --panel:#1c1c1c; --line:#4a2a25; --red:#c8382b; --text:#ebe6de; --muted:#8c8279; --ok:#7fbf7f; --erro:#ff8a7a; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Georgia,"Times New Roman",serif}
+  h1,h2,h3{margin:0 0 10px;font-weight:normal}
+  h1{color:var(--red);font-size:24px}
+  button{background:transparent;color:var(--text);border:1px solid var(--red);padding:7px 14px;font-family:inherit;font-size:14px;cursor:pointer}
+  button:hover{background:var(--red)}
+  button.primary{background:var(--red)}
+  button.perigo{border-color:#7a1f1f}
+  button.perigo:hover{background:#7a1f1f}
+  button.tab{border-color:transparent;border-bottom:2px solid transparent;padding:8px 12px}
+  button.tab.on{border-bottom-color:var(--red);color:var(--red)}
+  input,textarea,select{background:transparent;color:var(--text);font-family:inherit;font-size:16px;outline:none}
+  input,textarea{border:none;border-bottom:1px solid var(--line);padding:4px 2px;width:100%}
+  input:focus,textarea:focus{border-bottom-color:var(--red)}
+  textarea{border:1px solid var(--line);padding:8px;resize:vertical}
+  select.sel{background:var(--panel);border:1px solid var(--line);padding:7px}
+  .topbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .brand{color:var(--red);font-size:18px;letter-spacing:1px}
+  .tabs,.linha{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  main{max-width:1000px;margin:0 auto;padding:16px}
+  .cabecalho{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+  .lista{display:flex;flex-direction:column;gap:8px}
+  .item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);padding:10px 12px}
+  .item small{color:var(--muted);margin-left:6px}
+  .vazio,.dica{color:var(--muted);font-size:14px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:14px;margin-bottom:14px}
+  .card h2{font-size:18px;color:var(--red);letter-spacing:1px}
+  .login{max-width:340px;margin:50px auto;display:flex;flex-direction:column;gap:12px}
+  .login input{border:1px solid var(--line);padding:8px}
+  .ficha-top{display:flex;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;align-items:center}
+  .cab{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;background:var(--panel);border:1px solid var(--line);padding:12px}
+  .campo{display:flex;flex-direction:column;flex:1;min-width:140px}
+  .campo span{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid .card{margin-bottom:0}
+  .card .campo{flex-direction:row;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px dotted var(--line);padding:4px 0}
+  .card .campo span{letter-spacing:0;text-transform:none;font-size:14px;color:var(--text)}
+  .card .campo input{width:70px;text-align:center}
+  .poolbox{margin-bottom:14px}
+  .poolhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .lbl{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .mini{width:70px!important;text-align:center}
+  .fixo{color:var(--muted)}
+  .pips{min-height:22px;display:flex;flex-wrap:wrap;gap:3px}
+  .pip{width:14px;height:14px;border:1px solid var(--red);display:inline-block;cursor:pointer}
+  .pip.on{background:var(--red)}
+  .bloco{margin-bottom:12px}
+  .bloco h3{font-size:15px;color:var(--red);letter-spacing:1px}
+  .bloco textarea{width:100%}
+  .sec-titulo{color:var(--red);margin:18px 0 8px}
+  .ed-item{display:flex;gap:6px;align-items:center;background:var(--bg);border:1px dashed var(--line);padding:6px;margin-bottom:6px}
+  .alca{cursor:grab;color:var(--muted);user-select:none;padding:0 4px;font-size:16px}
+  .ed-conteudo{flex:1;min-width:0}
+  .ed-conteudo input,.ed-conteudo select{border:1px solid var(--line);padding:5px;width:100%}
+  .ed-conteudo select{background:var(--panel)}
+  .linha-ed{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .linha-ed input{flex:1;min-width:120px}
+  .linha-ed select{background:var(--panel);border:1px solid var(--line);padding:5px}
+  .mini-lbl{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted)}
+  .mini-lbl input{width:70px;flex:none;border:1px solid var(--line)}
+  .ed-acoes{display:flex;gap:4px}
+  .mini-btn{padding:2px 8px;font-size:13px}
+  .add-btn{width:100%;border-style:dashed;margin-top:4px}
+  #salvo{font-size:13px;color:var(--ok)}
+  @media (max-width:720px){ .grid{grid-template-columns:1fr} }
+  @media print{
+    :root{--bg:#fff;--panel:#fff;--text:#000;--muted:#444;--line:#999;--red:#8b0000}
+    .topbar,.ficha-top{display:none}
+  }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="brand">Hub de Fichas</div>
+  <div class="tabs" id="tabs" style="display:none">
+    <button class="tab on" id="tabJog">Jogador</button>
+    <button class="tab" id="tabMestre">Mestre</button>
+  </div>
+  <div class="linha">
+    <span id="salvo"></span>
+    <span id="navUser" class="vazio"></span>
+  </div>
+</nav>
+
+<main id="view"><p class="vazio">Carregando…</p></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO: cole aqui os dados do seu projeto Supabase
+   (Project Settings > API). Use a chave "anon public", nunca a "service_role".
+   ===================================================================== */
+const SUPABASE_URL = "https://rfefpkfmkjjbnumqbnmr.supabase.co/rest/v1/";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmZWZwa2Zta2pqYm51bXFibm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0OTIyOTUsImV4cCI6MjEwOTA2ODI5NX0.E0hccAHxovQXk8zPVkENRYnAq5U-Ja2IjDrtuwSjorA";
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Estrutura inicial de um sistema novo
+const ESTRUTURA_PADRAO = {
+  identidade: ["Conceito", "Profissão", "Nível"],
+  atributos: ["Físico", "Mente", "Emoção"],
+  pericias: [
+    { nome: "Acrobacia", atributo: "Físico" },
+    { nome: "Aptidão (Humanas)", atributo: "Mente" },
+    { nome: "Atletismo", atributo: "Físico" },
+    { nome: "Crime", atributo: "Físico" },
+    { nome: "Disciplina", atributo: "Emoção" },
+    { nome: "Enganação", atributo: "Emoção" },
+    { nome: "Furtividade", atributo: "Físico" },
+    { nome: "Intimidação", atributo: "Emoção" },
+    { nome: "Intuição", atributo: "Emoção" },
+    { nome: "Luta", atributo: "Físico" },
+    { nome: "Máquinas", atributo: "Mente" },
+    { nome: "Medicina", atributo: "Mente" },
+    { nome: "Ocultismo", atributo: "Mente" },
+    { nome: "Percepção", atributo: "Mente" },
+    { nome: "Persuasão", atributo: "Emoção" },
+    { nome: "Pesquisa", atributo: "Mente" },
+    { nome: "Pontaria", atributo: "Físico" },
+    { nome: "Sobrevivência", atributo: "Mente" },
+    { nome: "Tecnologia", atributo: "Mente" },
+    { nome: "Vigor", atributo: "Físico" }
+  ],
+  barras: [
+    { nome: "Pontos de Vida (PV)", tipo: "variavel", max: 10 },
+    { nome: "Pontos de Determinação (PD)", tipo: "variavel", max: 16 },
+    { nome: "Ímpeto", tipo: "fixo", max: 3 }
+  ],
+  textos: ["Foco Mental", "Equipamentos", "Aparência", "Histórico", "Anotações"]
+};
+
+/* =====================================================================
+   ESTADO E UTILIDADES
+   ===================================================================== */
+const clone = o => JSON.parse(JSON.stringify(o));
+const $ = s => document.querySelector(s);
+
+let me = null;               // usuário logado: {id, nome}
+let sistemas = [];           // sistemas em que sou jogador
+let meusSistemas = [];       // sistemas que eu mestro
+let jogSis = null;           // id do sistema escolhido na área do Jogador
+let mestreSis = null;        // id do sistema escolhido na área do Mestre
+let cacheM = null;           // dados do Mestre em memória: {membros, fichas}
+const timers = {};
+
+function h(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k.startsWith("on")) e[k] = v;
+    else if (k === "value") e.value = v;
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  kids.flat().forEach(c => {
+    if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c));
+  });
+  return e;
+}
+
+const slug = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+const kIdent = l => "id_" + slug(l);
+const kAttr  = a => "attr_" + slug(a);
+const kPer   = p => "per_" + slug(p.nome);
+const kBar   = b => "bar_" + slug(b.nome);
+const kTxt   = t => "txt_" + slug(t);
+
+function nomeUnico(base, lista, getNome) {
+  let n = base, k = 2;
+  while (lista.some(x => getNome(x) === n)) n = `${base} ${k++}`;
+  return n;
+}
+
+function campo(label, valor, onInput, type = "text") {
+  return h("label", { class: "campo" },
+    h("span", {}, label),
+    h("input", { type, value: valor ?? "", oninput: e => onInput(e.target.value) }));
+}
+
+function area(label, valor, onInput) {
+  return h("div", { class: "bloco" },
+    h("h3", {}, label),
+    h("textarea", { rows: "4", value: valor ?? "", oninput: e => onInput(e.target.value) }));
+}
+
+// Salva depois de uma pausa na digitação (evita um salvamento por tecla)
+function salvarDepois(chave, fn) {
+  clearTimeout(timers[chave]);
+  timers[chave] = setTimeout(fn, 600);
+}
+
+function marcarSalvo(texto) {
+  const s = $("#salvo");
+  if (s) s.textContent = texto;
+}
+
+function setTab(qual) {
+  $("#tabJog").classList.toggle("on", qual === "jog");
+  $("#tabMestre").classList.toggle("on", qual === "mestre");
+}
+
+function validar(e) {
+  for (const k of ["identidade", "atributos", "pericias", "barras", "textos"])
+    if (!Array.isArray(e[k])) return `Falta a lista "${k}".`;
+  for (const p of e.pericias) if (!p.nome || !p.atributo) return "Toda perícia precisa de nome e atributo.";
+  for (const b of e.barras) {
+    if (!b.nome) return "Toda barra precisa de nome.";
+    if (!["variavel", "fixo"].includes(b.tipo)) return `Tipo inválido em "${b.nome}".`;
+  }
+  const rep = (arr, f) => { const s = arr.map(f); return new Set(s).size !== s.length; };
+  if (e.identidade.some(x => !x) || e.atributos.some(x => !x) || e.textos.some(x => !x)) return "Há campos sem nome.";
+  if (rep(e.identidade, slug) || rep(e.atributos, slug) || rep(e.textos, slug)) return "Há campos com nome repetido.";
+  if (rep(e.pericias, p => slug(p.nome))) return "Há perícias com nome repetido.";
+  if (rep(e.barras, b => slug(b.nome))) return "Há barras com nome repetido.";
+  return null;
+}
+
+/* =====================================================================
+   LOGIN
+   ===================================================================== */
+async function iniciar() {
+  if (SUPABASE_URL.startsWith("COLE_")) {
+    $("#view").replaceChildren(h("div", { class: "card" },
+      h("h2", {}, "Configuração pendente"),
+      h("p", {}, "Abra o index.html e cole a URL e a chave anon do seu projeto Supabase no topo do script.")));
+    return;
+  }
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await entrarNoApp(session.user);
+  else telaLogin();
+}
+
+function telaLogin() {
+  $("#tabs").style.display = "none";
+  $("#navUser").replaceChildren();
+  const email = h("input", { type: "email", placeholder: "E-mail" });
+  const senha = h("input", { type: "password", placeholder: "Senha (mínimo 6 caracteres)" });
+  const nome = h("input", { placeholder: "Seu nome (só para criar conta)" });
+
+  const entrar = async () => {
+    const { data, error } = await sb.auth.signInWithPassword({ email: email.value.trim(), password: senha.value });
+    if (error) return alert("Não foi possível entrar: " + error.message);
+    await entrarNoApp(data.user);
+  };
+
+  const cadastrar = async () => {
+    const { data, error } = await sb.auth.signUp({
+      email: email.value.trim(),
+      password: senha.value,
+      options: { data: { nome: nome.value.trim() || email.value.trim() } }
+    });
+    if (error) return alert("Não foi possível criar a conta: " + error.message);
+    if (data.session) await entrarNoApp(data.user);
+    else alert("Conta criada. Se o Supabase pedir, confirme o e-mail e depois entre.");
+  };
+
+  $("#view").replaceChildren(h("div", { class: "login card" },
+    h("h1", {}, "Entrar"),
+    email, senha,
+    h("button", { class: "primary", onclick: entrar }, "Entrar"),
+    h("hr", { style: "width:100%;border-color:#4a2a25" }),
+    h("h2", {}, "Criar conta"),
+    nome,
+    h("button", { onclick: cadastrar }, "Criar conta")));
+}
+
+async function entrarNoApp(user) {
+  const { data: perfil } = await sb.from("profiles").select("nome").eq("id", user.id).maybeSingle();
+  me = { id: user.id, nome: perfil?.nome || user.email };
+  $("#navUser").replaceChildren(
+    h("span", {}, me.nome),
+    h("button", { onclick: async () => { await sb.auth.signOut(); location.reload(); } }, "Sair"));
+  $("#tabs").style.display = "flex";
+  $("#tabJog").onclick = showJogador;
+  $("#tabMestre").onclick = showMestre;
+  showJogador();
+}
+
+/* =====================================================================
+   DADOS
+   ===================================================================== */
+async function carregarSistemas() {
+  const { data: m, error: e1 } = await sb.from("memberships").select("systems(*)").eq("user_id", me.id);
+  if (e1) alert("Erro ao carregar sistemas: " + e1.message);
+  sistemas = (m || []).map(x => x.systems).filter(Boolean);
+
+  const { data: o, error: e2 } = await sb.from("systems").select("*").eq("owner_id", me.id).order("created_at");
+  if (e2) alert("Erro ao carregar seus sistemas: " + e2.message);
+  meusSistemas = o || [];
+
+  if (!sistemas.some(s => s.id === jogSis)) jogSis = sistemas[0]?.id || null;
+  if (!meusSistemas.some(s => s.id === mestreSis)) mestreSis = meusSistemas[0]?.id || null;
+}
+
+/* =====================================================================
+   ÁREA DO JOGADOR
+   ===================================================================== */
+async function showJogador() {
+  setTab("jog");
+  await carregarSistemas();
+  const codigo = h("input", { placeholder: "Código de convite do Mestre" });
+  const entrarCodigo = async () => {
+    const code = codigo.value.trim();
+    if (!code) return;
+    const { data, error } = await sb.rpc("join_system", { code });
+    if (error) return alert("Não foi possível entrar: " + error.message);
+    jogSis = data;
+    alert("Você entrou no sistema!");
+    showJogador();
+  };
+
+  const blocoCodigo = h("div", { class: "card" },
+    h("h2", {}, "Entrar em um sistema"),
+    h("p", { class: "dica" }, "Peça ao Mestre o código de convite do sistema."),
+    h("div", { class: "linha" }, codigo, h("button", { class: "primary", onclick: entrarCodigo }, "Entrar")));
+
+  if (!sistemas.length) {
+    $("#view").replaceChildren(
+      h("h1", {}, "Minhas fichas"), blocoCodigo,
+      h("p", { class: "vazio" }, "Você ainda não está em nenhum sistema."));
+    return;
+  }
+
+  const seletor = h("select", { class: "sel", onchange: e => { jogSis = e.target.value; showJogador(); } },
+    ...sistemas.map(s => h("option", { value: s.id, selected: s.id === jogSis }, s.name)));
+
+  const { data: fichas, error } = await sb.from("sheets").select("*")
+    .eq("owner_id", me.id).eq("system_id", jogSis).order("created_at");
+  if (error) return alert("Erro ao carregar fichas: " + error.message);
+
+  $("#view").replaceChildren(
+    h("div", { class: "cabecalho" },
+      h("h1", {}, "Minhas fichas"),
+      h("div", { class: "linha" }, seletor, h("button", { class: "primary", onclick: novaFichaJogador }, "+ Nova ficha"))),
+    blocoCodigo,
+    fichas.length
+      ? h("div", { class: "lista" }, ...fichas.map(f =>
+          h("div", { class: "item" },
+            h("div", {}, h("strong", {}, f.name)),
+            h("button", { onclick: () => abrirFichaJogador(f.id) }, "Abrir"))))
+      : h("p", { class: "vazio" }, "Nenhuma ficha neste sistema. Clique em \"+ Nova ficha\" para começar."));
+}
+
+async function novaFichaJogador() {
+  const nome = prompt("Nome do personagem:", "Novo personagem");
+  if (nome === null) return;
+  const { data, error } = await sb.from("sheets")
+    .insert({ system_id: jogSis, owner_id: me.id, name: nome.trim() || "Novo personagem", data: {} })
+    .select().single();
+  if (error) return alert("Não foi possível criar a ficha: " + error.message);
+  abrirFichaJogador(data.id);
+}
+
+async function abrirFichaJogador(id) {
+  const { data: ficha, error } = await sb.from("sheets").select("*").eq("id", id).single();
+  if (error) return alert(error.message);
+  const sis = sistemas.find(s => s.id === ficha.system_id) || await buscarSistema(ficha.system_id);
+  renderFicha(ficha, sis, { voltar: showJogador });
+}
+
+async function buscarSistema(id) {
+  const { data } = await sb.from("systems").select("*").eq("id", id).single();
+  return data;
+}
+
+/* =====================================================================
+   FICHA (usada pelo Jogador e pelo Mestre)
+   ===================================================================== */
+function barra(b, d, mudou) {
+  const k = kBar(b);
+  const fixo = b.tipo === "fixo";
+  const maxOf = () => fixo ? (Number(b.max) || 0) : (parseInt(d[k + "_max"]) || 0);
+  const curOf = () => parseInt(d[k + "_atual"]) || 0;
+  const pips = h("div", { class: "pips" });
+
+  const draw = () => {
+    const m = maxOf(), c = curOf();
+    pips.replaceChildren(...Array.from({ length: m }, (_, i) =>
+      h("span", {
+        class: "pip" + (i < c ? " on" : ""),
+        onclick: () => { d[k + "_atual"] = String(c === i + 1 ? i : i + 1); draw(); mudou(); }
+      })));
+  };
+
+  const maxEl = fixo
+    ? h("span", { class: "fixo" }, `máx ${b.max}`)
+    : h("input", { type: "number", min: "0", class: "mini", placeholder: "máx", value: d[k + "_max"] ?? "",
+        oninput: e => { d[k + "_max"] = e.target.value; draw(); mudou(); } });
+
+  draw();
+  return h("div", { class: "poolbox" },
+    h("div", { class: "poolhead" }, h("span", { class: "lbl" }, b.name || b.nome), maxEl), pips);
+}
+
+function renderFicha(sheet, sis, opts = {}) {
+  if (!sis) return alert("Sistema não encontrado.");
+  sheet.data ||= {};
+  const d = sheet.data;
+  const E = sis.structure;
+
+  const mudou = () => {
+    marcarSalvo("Salvando…");
+    salvarDepois("ficha" + sheet.id, async () => {
+      const { error } = await sb.from("sheets").update({ name: sheet.name, data: sheet.data }).eq("id", sheet.id);
+      marcarSalvo(error ? "Erro ao salvar: " + error.message : "Salvo ✔");
+    });
+  };
+  const salvar = k => v => { d[k] = v; mudou(); };
+
+  $("#view").replaceChildren(
+    h("div", { class: "ficha-top" },
+      h("button", { onclick: opts.voltar }, "← Voltar"),
+      h("span", { class: "vazio" }, sis.name + (opts.dono ? " · jogador: " + opts.dono : "")),
+      ...(opts.acoes || [])),
+    h("div", { class: "cab" },
+      campo("Nome do personagem", sheet.name, v => { sheet.name = v; mudou(); }),
+      ...E.identidade.map(l => campo(l, d[kIdent(l)], salvar(kIdent(l))))),
+    h("div", { class: "grid" },
+      h("section", { class: "card" }, h("h2", {}, "Atributos"),
+        ...E.atributos.map(a => campo(a, d[kAttr(a)], salvar(kAttr(a)), "number"))),
+      h("section", { class: "card" }, h("h2", {}, "Perícias"),
+        ...E.pericias.map(p => campo(`${p.nome} · ${p.atributo}`, d[kPer(p)], salvar(kPer(p)), "number"))),
+      h("section", { class: "card" }, h("h2", {}, "Pontos"),
+        ...E.barras.map(b => barra(b, d, mudou))),
+      h("section", { class: "card" }, h("h2", {}, "Detalhes"),
+        ...E.textos.map(t => area(t, d[kTxt(t)], salvar(kTxt(t)))))));
+}
+
+/* =====================================================================
+   ÁREA DO MESTRE
+   ===================================================================== */
+async function showMestre() {
+  setTab("mestre");
+  await carregarSistemas();
+
+  const cabecalho = h("div", { class: "cabecalho" },
+    h("h1", {}, "Área do Mestre"),
+    h("button", { class: "primary", onclick: novoSistema }, "+ Novo sistema"));
+
+  if (!meusSistemas.length) {
+    $("#view").replaceChildren(cabecalho,
+      h("p", { class: "vazio" }, "Você ainda não mestra nenhum sistema. Crie um para começar."));
+    return;
+  }
+
+  const seletor = h("select", { class: "sel", onchange: e => { mestreSis = e.target.value; showMestre(); } },
+    ...meusSistemas.map(s => h("option", { value: s.id, selected: s.id === mestreSis }, s.name)));
+
+  const [{ data: membros }, { data: fichas, error }] = await Promise.all([
+    sb.from("memberships").select("user_id, profiles(nome)").eq("system_id", mestreSis),
+    sb.from("sheets").select("*, profiles(nome)").eq("system_id", mestreSis).order("created_at")
+  ]);
+  if (error) return alert("Erro ao carregar fichas: " + error.message);
+
+  cacheM = { membros: membros || [], fichas: fichas || [] };
+  $("#view").dataset.sistema = mestreSis;
+  desenharMestre(seletor, cabecalho);
+}
+
+function cur() { return meusSistemas.find(s => s.id === mestreSis); }
+
+function desenharMestre(seletor, cabecalho) {
+  const sis = cur();
+  if (!sis) return;
+  const E = sis.structure;
+  const { membros, fichas } = cacheM;
+  seletor = seletor || h("select", { class: "sel", onchange: e => { mestreSis = e.target.value; showMestre(); } },
+    ...meusSistemas.map(s => h("option", { value: s.id, selected: s.id === sis.id }, s.name)));
+  cabecalho = cabecalho || h("div", { class: "cabecalho" },
+    h("h1", {}, "Área do Mestre"),
+    h("button", { class: "primary", onclick: novoSistema }, "+ Novo sistema"));
+
+  // ---- gestão do sistema ----
+  const gestao = h("div", { class: "card" },
+    h("h2", {}, "Sistema"),
+    h("div", { class: "linha" }, seletor,
+      h("button", { onclick: renomearSistema }, "Renomear"),
+      h("button", { onclick: duplicarSistema }, "Duplicar"),
+      h("button", { class: "perigo", onclick: excluirSistema }, "Excluir")),
+    h("p", { class: "dica" }, "Código de convite para os jogadores: ",
+      h("strong", { style: "color:#ebe6de;letter-spacing:2px" }, sis.invite_code),
+      " ", h("button", { class: "mini-btn", onclick: () => {
+        navigator.clipboard?.writeText(sis.invite_code);
+        marcarSalvo("Código copiado");
+      } }, "Copiar")));
+
+  // ---- membros ----
+  const blocoMembros = h("div", { class: "card" },
+    h("h2", {}, `Jogadores (${membros.length})`),
+    membros.length
+      ? h("div", { class: "lista" }, ...membros.map(m =>
+          h("div", { class: "item" },
+            h("span", {}, m.profiles?.nome || "Sem nome"),
+            h("button", { class: "perigo mini-btn", onclick: async () => {
+              if (!confirm("Remover este jogador do sistema?")) return;
+              const { error } = await sb.from("memberships").delete()
+                .eq("system_id", sis.id).eq("user_id", m.user_id);
+              if (error) return alert(error.message);
+              showMestre();
+            } }, "Remover"))))
+      : h("p", { class: "vazio" }, "Nenhum jogador ainda. Envie o código de convite."));
+
+  // ---- editor visual da ficha ----
+  const renderTexto = arr => (item, i) =>
+    h("input", { value: item, placeholder: "nome do campo", oninput: e => { arr[i] = e.target.value; salvarEstrutura(sis); } });
+
+  const renderAtributo = (item, i) =>
+    h("input", { value: item, placeholder: "nome do atributo", oninput: e => {
+      const antigo = E.atributos[i];
+      E.atributos[i] = e.target.value;
+      E.pericias.forEach(p => { if (p.atributo === antigo) p.atributo = e.target.value; });
+      salvarEstrutura(sis);
+    } });
+
+  const opcoesAtributo = sel => {
+    const lista = [...E.atributos];
+    if (sel && !lista.includes(sel)) lista.push(sel);
+    return lista.map(a => h("option", { value: a, selected: a === sel }, a));
+  };
+
+  const renderPericia = p => h("div", { class: "linha-ed" },
+    h("input", { value: p.nome, placeholder: "nome da perícia", oninput: e => { p.nome = e.target.value; salvarEstrutura(sis); } }),
+    h("select", { onchange: e => { p.atributo = e.target.value; salvarEstrutura(sis); } }, ...opcoesAtributo(p.atributo)));
+
+  const renderBarra = b => {
+    const kids = [
+      h("input", { value: b.nome, placeholder: "nome da barra", oninput: e => { b.nome = e.target.value; salvarEstrutura(sis); } }),
+      h("select", { onchange: e => {
+        b.tipo = e.target.value;
+        if (b.tipo === "fixo" && b.max == null) b.max = 3;
+        atualizarEstrutura();
+      } },
+        h("option", { value: "variavel", selected: b.tipo === "variavel" }, "variável (máx. por ficha)"),
+        h("option", { value: "fixo", selected: b.tipo === "fixo" }, "fixo"))
+    ];
+    if (b.tipo === "fixo") {
+      kids.push(h("label", { class: "mini-lbl" }, "máx",
+        h("input", { type: "number", min: "0", value: b.max ?? "", oninput: e => { b.max = Number(e.target.value) || 0; salvarEstrutura(sis); } })));
+    }
+    return h("div", { class: "linha-ed" }, ...kids);
+  };
+
+  const listaEditavel = (arr, renderItem, novo) => {
+    const mover = (de, para) => {
+      if (para < 0 || para >= arr.length) return;
+      const [m] = arr.splice(de, 1);
+      arr.splice(para, 0, m);
+      atualizarEstrutura();
+    };
+    const box = h("div", {});
+    arr.forEach((item, i) => {
+      const alca = h("span", { class: "alca", title: "Arraste para reordenar" }, "⋮⋮");
+      const row = h("div", { class: "ed-item" },
+        alca,
+        h("div", { class: "ed-conteudo" }, renderItem(item, i)),
+        h("div", { class: "ed-acoes" },
+          h("button", { class: "mini-btn", title: "Subir", onclick: () => mover(i, i - 1) }, "↑"),
+          h("button", { class: "mini-btn", title: "Descer", onclick: () => mover(i, i + 1) }, "↓"),
+          h("button", { class: "mini-btn perigo", title: "Remover", onclick: () => {
+            if (confirm("Remover este item?")) { arr.splice(i, 1); atualizarEstrutura(); }
+          } }, "✕")));
+      alca.onmousedown = () => row.setAttribute("draggable", "true");
+      row.ondragstart = e => e.dataTransfer.setData("text/plain", String(i));
+      row.ondragend = () => row.removeAttribute("draggable");
+      row.ondragover = e => e.preventDefault();
+      row.ondrop = e => {
+        e.preventDefault();
+        const de = parseInt(e.dataTransfer.getData("text/plain"));
+        if (!isNaN(de) && de !== i) mover(de, i);
+      };
+      box.append(row);
+    });
+    box.append(h("button", { class: "add-btn", onclick: () => { arr.push(novo()); atualizarEstrutura(); } }, "+ Adicionar"));
+    return box;
+  };
+
+  const editor = h("div", {},
+    h("h3", { class: "sec-titulo" }, `Editor da ficha: ${sis.name}`),
+    h("p", { class: "dica" }, "Edite direto nos campos. Mudanças são salvas sozinhas. Renomear um campo faz os dados já preenchidos nele deixarem de aparecer."),
+    h("div", { class: "card" }, h("h2", {}, "Cabeçalho"),
+      listaEditavel(E.identidade, renderTexto(E.identidade), () => nomeUnico("Novo campo", E.identidade, x => x))),
+    h("div", { class: "grid" },
+      h("section", { class: "card" }, h("h2", {}, "Atributos"),
+        listaEditavel(E.atributos, renderAtributo, () => nomeUnico("Novo atributo", E.atributos, x => x))),
+      h("section", { class: "card" }, h("h2", {}, "Perícias"),
+        listaEditavel(E.pericias, renderPericia, () => ({
+          nome: nomeUnico("Nova perícia", E.pericias, p => p.nome), atributo: E.atributos[0] || "" }))),
+      h("section", { class: "card" }, h("h2", {}, "Pontos (barras)"),
+        listaEditavel(E.barras, renderBarra, () => ({
+          nome: nomeUnico("Nova barra", E.barras, b => b.nome), tipo: "variavel", max: 10 }))),
+      h("section", { class: "card" }, h("h2", {}, "Detalhes (textos)"),
+        listaEditavel(E.textos, renderTexto(E.textos), () => nomeUnico("Novo campo de texto", E.textos, x => x)))));
+
+  // ---- fichas do sistema (todos os jogadores) ----
+  const listaFichas = h("div", {},
+    h("h3", { class: "sec-titulo" }, `Fichas de "${sis.name}" (${fichas.length})`),
+    fichas.length
+      ? h("div", { class: "lista" }, ...fichas.map(f =>
+          h("div", { class: "item" },
+            h("div", {}, h("strong", {}, f.name), h("small", {}, f.profiles?.nome || "")),
+            h("button", { onclick: () => abrirFichaMestre(f.id) }, "Abrir / editar")))
+        )
+      : h("p", { class: "vazio" }, "Nenhuma ficha neste sistema ainda."));
+
+  $("#view").replaceChildren(cabecalho, gestao, blocoMembros, editor, listaFichas);
+}
+
+function salvarEstrutura(sis) {
+  marcarSalvo("Salvando estrutura…");
+  salvarDepois("estr" + sis.id, async () => {
+    const err = validar(sis.structure);
+    if (err) return marcarSalvo("⚠ " + err + " (não salvo)");
+    const { error } = await sb.from("systems").update({ structure: sis.structure }).eq("id", sis.id);
+    marcarSalvo(error ? "Erro: " + error.message : "Estrutura salva ✔");
+  });
+}
+
+function atualizarEstrutura() {
+  const sis = cur();
+  if (!sis) return;
+  salvarEstrutura(sis);
+  desenharMestre();
+}
+
+async function abrirFichaMestre(id) {
+  const ficha = cacheM.fichas.find(f => f.id === id);
+  if (!ficha) return;
+  const sis = cur();
+  const mover = h("select", { class: "sel", onchange: async e => {
+    const { error } = await sb.from("sheets").update({ system_id: e.target.value }).eq("id", ficha.id);
+    if (error) return alert("Não foi possível mover: " + error.message);
+    alert("Ficha movida para outro sistema.");
+    showMestre();
+  } }, ...meusSistemas.map(s => h("option", { value: s.id, selected: s.id === sis.id }, s.name)));
+
+  const excluir = h("button", { class: "perigo", onclick: async () => {
+    if (!confirm(`Excluir a ficha "${ficha.name}"?`)) return;
+    const { error } = await sb.from("sheets").delete().eq("id", ficha.id);
+    if (error) return alert(error.message);
+    showMestre();
+  } }, "Excluir ficha");
+
+  renderFicha(ficha, sis, {
+    voltar: showMestre,
+    dono: ficha.profiles?.nome,
+    acoes: [h("span", { class: "vazio" }, "Mover para:"), mover, excluir]
+  });
+}
+
+async function novoSistema() {
+  const nome = prompt("Nome do novo sistema:", "Novo sistema");
+  if (!nome) return;
+  const { data, error } = await sb.from("systems")
+    .insert({ owner_id: me.id, name: nome.trim(), structure: clone(ESTRUTURA_PADRAO) })
+    .select().single();
+  if (error) return alert("Não foi possível criar: " + error.message);
+  mestreSis = data.id;
+  showMestre();
+}
+
+async function renomearSistema() {
+  const sis = cur();
+  const nome = prompt("Novo nome:", sis.name);
+  if (!nome || !nome.trim()) return;
+  const { error } = await sb.from("systems").update({ name: nome.trim() }).eq("id", sis.id);
+  if (error) return alert(error.message);
+  showMestre();
+}
+
+async function duplicarSistema() {
+  const sis = cur();
+  const { data, error } = await sb.from("systems")
+    .insert({ owner_id: me.id, name: sis.name + " (cópia)", structure: clone(sis.structure) })
+    .select().single();
+  if (error) return alert(error.message);
+  mestreSis = data.id;
+  showMestre();
+}
+
+async function excluirSistema() {
+  const sis = cur();
+  if (!confirm(`Excluir o sistema "${sis.name}", com todas as fichas e jogadores? Não dá para desfazer.`)) return;
+  const { error } = await sb.from("systems").delete().eq("id", sis.id);
+  if (error) return alert(error.message);
+  mestreSis = null;
+  showMestre();
+}
+
+/* =====================================================================
+   INÍCIO
+   ===================================================================== */
+iniciar();
+</script>
+</body>
+</html>
