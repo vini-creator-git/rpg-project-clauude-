@@ -62,7 +62,7 @@ $("#btnCriar").onclick = async () => {
   botao.disabled = false;
 
   if (error) return aviso(traduzirErro(error.message));
-  if (data.session) return location.replace("hub.html");
+  if (data.session) return location.replace("index.html");
 
   // Projeto com confirmação de e-mail ativa
   aviso("Conta criada! Confira seu e-mail para confirmar o cadastro e depois entre.", true);
