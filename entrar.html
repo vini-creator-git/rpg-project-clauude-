@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="escuro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar · Hub de Fichas</title>
+<link rel="stylesheet" href="style.css">
+<script>document.documentElement.dataset.tema = localStorage.getItem("hub-tema") || "escuro";</script>
+</head>
+<body>
+
+<header class="topo-auth">
+  <span class="brand">Hub de Fichas</span>
+  <span id="temaSlot"></span>
+</header>
+
+<main class="auth-wrap">
+  <section id="formLogin" class="auth-box card">
+    <h1>Entrar</h1>
+    <input id="email" type="email" placeholder="E-mail" autocomplete="email">
+    <input id="senha" type="password" placeholder="Senha" autocomplete="current-password">
+    <button class="primary" id="btnEntrar">Entrar</button>
+    <button class="link" id="btnEsqueci">Esqueci minha senha</button>
+    <hr>
+    <p class="dica">Ainda não tem conta? <a href="criar-conta.html">Criar conta</a></p>
+    <p id="msg" class="msg"></p>
+  </section>
+
+  <section id="formNova" class="auth-box card" hidden>
+    <h1>Nova senha</h1>
+    <input id="novaSenha" type="password" placeholder="Nova senha (mínimo 6 caracteres)" autocomplete="new-password">
+    <button class="primary" id="btnNova">Salvar nova senha</button>
+    <p id="msgNova" class="msg"></p>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+
+function aviso(el, texto, ok = false) {
+  el.textContent = texto;
+  el.className = "msg " + (ok ? "ok" : "erro");
+}
+
+function mostrarNovaSenha() {
+  $("#formLogin").hidden = true;
+  $("#formNova").hidden = false;
+}
+
+$("#temaSlot").append(botaoTema());
+
+// Link de redefinição de senha chega com #type=recovery (ou ?code= no fluxo PKCE)
+const recuperando = location.hash.includes("type=recovery") || location.search.includes("code=");
+if (recuperando) mostrarNovaSenha();
+else pularSeLogado();
+
+sb.auth.onAuthStateChange(evento => {
+  if (evento === "PASSWORD_RECOVERY") mostrarNovaSenha();
+});
+
+$("#btnEntrar").onclick = async () => {
+  const email = $("#email").value.trim();
+  const senha = $("#senha").value;
+  if (!email || !senha) return aviso($("#msg"), "Preencha e-mail e senha.");
+
+  const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+  if (error) return aviso($("#msg"), traduzirErro(error.message));
+  location.replace("hub.html");
+};
+
+$("#senha").addEventListener("keydown", e => { if (e.key === "Enter") $("#btnEntrar").click(); });
+
+$("#btnEsqueci").onclick = async () => {
+  const email = $("#email").value.trim();
+  if (!email) return aviso($("#msg"), "Digite seu e-mail no campo acima.");
+
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: location.origin + location.pathname
+  });
+  if (error) aviso($("#msg"), traduzirErro(error.message));
+  else aviso($("#msg"), "Enviamos um link de redefinição para o seu e-mail.", true);
+};
+
+$("#btnNova").onclick = async () => {
+  const senha = $("#novaSenha").value;
+  if (senha.length < 6) return aviso($("#msgNova"), "A senha precisa ter no mínimo 6 caracteres.");
+
+  const { error } = await sb.auth.updateUser({ password: senha });
+  if (error) return aviso($("#msgNova"), traduzirErro(error.message));
+
+  history.replaceState(null, "", location.pathname);
+  location.replace("hub.html");
+};
+</script>
+</body>
+</html>

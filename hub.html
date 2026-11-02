@@ -1,81 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-tema="escuro">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hub de Fichas</title>
-<style>
-  :root{ --bg:#121212; --panel:#1c1c1c; --line:#4a2a25; --red:#c8382b; --text:#ebe6de; --muted:#8c8279; --ok:#7fbf7f; --erro:#ff8a7a; }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:Georgia,"Times New Roman",serif}
-  h1,h2,h3{margin:0 0 10px;font-weight:normal}
-  h1{color:var(--red);font-size:24px}
-  button{background:transparent;color:var(--text);border:1px solid var(--red);padding:7px 14px;font-family:inherit;font-size:14px;cursor:pointer}
-  button:hover{background:var(--red)}
-  button.primary{background:var(--red)}
-  button.perigo{border-color:#7a1f1f}
-  button.perigo:hover{background:#7a1f1f}
-  button.tab{border-color:transparent;border-bottom:2px solid transparent;padding:8px 12px}
-  button.tab.on{border-bottom-color:var(--red);color:var(--red)}
-  input,textarea,select{background:transparent;color:var(--text);font-family:inherit;font-size:16px;outline:none}
-  input,textarea{border:none;border-bottom:1px solid var(--line);padding:4px 2px;width:100%}
-  input:focus,textarea:focus{border-bottom-color:var(--red)}
-  textarea{border:1px solid var(--line);padding:8px;resize:vertical}
-  select.sel{background:var(--panel);border:1px solid var(--line);padding:7px}
-  .topbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-  .brand{color:var(--red);font-size:18px;letter-spacing:1px}
-  .tabs,.linha{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  main{max-width:1000px;margin:0 auto;padding:16px}
-  .cabecalho{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
-  .lista{display:flex;flex-direction:column;gap:8px}
-  .item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);padding:10px 12px}
-  .item small{color:var(--muted);margin-left:6px}
-  .vazio,.dica{color:var(--muted);font-size:14px}
-  .card{background:var(--panel);border:1px solid var(--line);padding:14px;margin-bottom:14px}
-  .card h2{font-size:18px;color:var(--red);letter-spacing:1px}
-  .login{max-width:340px;margin:50px auto;display:flex;flex-direction:column;gap:12px}
-  .login input{border:1px solid var(--line);padding:8px}
-  .ficha-top{display:flex;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;align-items:center}
-  .cab{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;background:var(--panel);border:1px solid var(--line);padding:12px}
-  .campo{display:flex;flex-direction:column;flex:1;min-width:140px}
-  .campo span{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .grid .card{margin-bottom:0}
-  .card .campo{flex-direction:row;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px dotted var(--line);padding:4px 0}
-  .card .campo span{letter-spacing:0;text-transform:none;font-size:14px;color:var(--text)}
-  .card .campo input{width:70px;text-align:center}
-  .poolbox{margin-bottom:14px}
-  .poolhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-  .lbl{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
-  .mini{width:70px!important;text-align:center}
-  .fixo{color:var(--muted)}
-  .pips{min-height:22px;display:flex;flex-wrap:wrap;gap:3px}
-  .pip{width:14px;height:14px;border:1px solid var(--red);display:inline-block;cursor:pointer}
-  .pip.on{background:var(--red)}
-  .bloco{margin-bottom:12px}
-  .bloco h3{font-size:15px;color:var(--red);letter-spacing:1px}
-  .bloco textarea{width:100%}
-  .sec-titulo{color:var(--red);margin:18px 0 8px}
-  .ed-item{display:flex;gap:6px;align-items:center;background:var(--bg);border:1px dashed var(--line);padding:6px;margin-bottom:6px}
-  .alca{cursor:grab;color:var(--muted);user-select:none;padding:0 4px;font-size:16px}
-  .ed-conteudo{flex:1;min-width:0}
-  .ed-conteudo input,.ed-conteudo select{border:1px solid var(--line);padding:5px;width:100%}
-  .ed-conteudo select{background:var(--panel)}
-  .linha-ed{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .linha-ed input{flex:1;min-width:120px}
-  .linha-ed select{background:var(--panel);border:1px solid var(--line);padding:5px}
-  .mini-lbl{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted)}
-  .mini-lbl input{width:70px;flex:none;border:1px solid var(--line)}
-  .ed-acoes{display:flex;gap:4px}
-  .mini-btn{padding:2px 8px;font-size:13px}
-  .add-btn{width:100%;border-style:dashed;margin-top:4px}
-  #salvo{font-size:13px;color:var(--ok)}
-  @media (max-width:720px){ .grid{grid-template-columns:1fr} }
-  @media print{
-    :root{--bg:#fff;--panel:#fff;--text:#000;--muted:#444;--line:#999;--red:#8b0000}
-    .topbar,.ficha-top{display:none}
-  }
-</style>
+<link rel="stylesheet" href="style.css">
+<script>document.documentElement.dataset.tema = localStorage.getItem("hub-tema") || "escuro";</script>
 </head>
 <body>
 
@@ -94,21 +24,11 @@
 <main id="view"><p class="vazio">Carregando…</p></main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
 <script>
 /* =====================================================================
-   CONFIGURAÇÃO
-   URL: só o endereço do projeto, sem /rest/v1 e sem barra no final.
-   Chave: a "anon public" (Project Settings > API). Nunca a "service_role".
+   ESTADO E UTILIDADES
    ===================================================================== */
-const SUPABASE_URL = "https://rfefpkfmkjjbnumqbnmr.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmZWZwa2Zta2pqYm51bXFibm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0OTIyOTUsImV4cCI6MjEwOTA2ODI5NX0.E0hccAHxovQXk8zPVkENRYnAq5U-Ja2IjDrtuwSjorA";
-
-const URL_PROJETO = (SUPABASE_URL || "").trim().replace(/\/+$/, "");
-const CHAVE_PROJETO = (SUPABASE_KEY || "").trim();
-const URL_VALIDA = /^https:\/\/[a-z0-9]+\.supabase\.co$/.test(URL_PROJETO);
-const CHAVE_VALIDA = CHAVE_PROJETO.length > 20 && !/\s/.test(CHAVE_PROJETO);
-const configOk = URL_VALIDA && CHAVE_VALIDA;
-const sb = configOk ? window.supabase.createClient(URL_PROJETO, CHAVE_PROJETO) : null;
 
 // Estrutura inicial de um sistema novo
 const ESTRUTURA_PADRAO = {
@@ -144,9 +64,6 @@ const ESTRUTURA_PADRAO = {
   textos: ["Foco Mental", "Equipamentos", "Aparência", "Histórico", "Anotações"]
 };
 
-/* =====================================================================
-   ESTADO E UTILIDADES
-   ===================================================================== */
 const clone = o => JSON.parse(JSON.stringify(o));
 const $ = s => document.querySelector(s);
 
@@ -159,7 +76,6 @@ let cacheM = null;           // dados do Mestre em memória
 let telaFicha = null;        // id da ficha aberta (null = está em uma lista)
 let fichaAtual = null;       // {sheet, sis, opts} da ficha aberta
 let canalTempoReal = null;
-let modoRecuperacao = false; // true enquanto o usuário redefine a senha
 const enviados = new Set();  // JSON das fichas que eu mesmo salvei
 const timers = {};
 
@@ -238,97 +154,27 @@ function validar(e) {
 }
 
 /* =====================================================================
-   LOGIN E INÍCIO
+   INÍCIO E SESSÃO
+   O login é feito em entrar.html / criar-conta.html (ver auth.js)
    ===================================================================== */
 async function iniciar() {
-  if (!configOk) {
-    const motivo = !URL_VALIDA
-      ? `A URL está errada. Ela deve ser exatamente assim: https://nome-do-projeto.supabase.co (sem /rest/v1 e sem barra no final). Valor atual: "${URL_PROJETO}"`
-      : "A chave está errada. Use a chave anon public, sem espaços.";
-    $("#view").replaceChildren(h("div", { class: "card" },
-      h("h2", {}, "Configuração incorreta"),
-      h("p", {}, motivo),
-      h("p", { class: "dica" }, "Corrija SUPABASE_URL ou SUPABASE_KEY no topo do script e atualize a página.")));
-    return;
-  }
-  if (location.hash.includes("type=recovery")) {
-    modoRecuperacao = true;
-    return telaNovaSenha();
-  }
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) await entrarNoApp(session.user);
-  else telaLogin();
-}
-
-function telaLogin() {
-  $("#tabs").style.display = "none";
-  $("#navUser").replaceChildren();
-  const email = h("input", { type: "email", placeholder: "E-mail" });
-  const senha = h("input", { type: "password", placeholder: "Senha (mínimo 6 caracteres)" });
-  const nome = h("input", { placeholder: "Seu nome (só para criar conta)" });
-
-  const entrar = async () => {
-    const { data, error } = await sb.auth.signInWithPassword({ email: email.value.trim(), password: senha.value });
-    if (error) return alert("Não foi possível entrar: " + error.message);
-    await entrarNoApp(data.user);
-  };
-
-  const cadastrar = async () => {
-    const { data, error } = await sb.auth.signUp({
-      email: email.value.trim(),
-      password: senha.value,
-      options: { data: { nome: nome.value.trim() || email.value.trim() } }
-    });
-    if (error) return alert("Não foi possível criar a conta: " + error.message);
-    if (data.session) await entrarNoApp(data.user);
-    else alert("Conta criada. Se o Supabase pedir, confirme o e-mail e depois entre.");
-  };
-
-  $("#view").replaceChildren(h("div", { class: "login card" },
-    h("h1", {}, "Entrar"),
-    email, senha,
-    h("button", { class: "primary", onclick: entrar }, "Entrar"),
-    h("button", { onclick: () => recuperarSenha(email.value) }, "Esqueci minha senha"),
-    h("hr", { style: "width:100%;border-color:#4a2a25" }),
-    h("h2", {}, "Criar conta"),
-    nome,
-    h("button", { onclick: cadastrar }, "Criar conta")));
-}
-
-function recuperarSenha(email) {
-  const em = (email || "").trim();
-  if (!em) return alert("Digite seu e-mail no campo acima.");
-  sb.auth.resetPasswordForEmail(em, { redirectTo: location.origin + location.pathname })
-    .then(({ error }) => alert(error
-      ? "Não foi possível enviar: " + error.message
-      : "Enviamos um link de redefinição para o seu e-mail."));
-}
-
-function telaNovaSenha() {
-  $("#tabs").style.display = "none";
-  const senha = h("input", { type: "password", placeholder: "Nova senha (mínimo 6 caracteres)" });
-  const salvar = async () => {
-    const { error } = await sb.auth.updateUser({ password: senha.value });
-    if (error) return alert(error.message);
-    modoRecuperacao = false;
-    alert("Senha alterada!");
-    const { data: { user } } = await sb.auth.getUser();
-    history.replaceState(null, "", location.pathname);
-    await entrarNoApp(user);
-  };
-  $("#view").replaceChildren(h("div", { class: "login card" },
-    h("h1", {}, "Nova senha"),
-    senha,
-    h("button", { class: "primary", onclick: salvar }, "Salvar nova senha")));
+  const user = await exigirLogin();
+  if (!user) return;
+  await entrarNoApp(user);
 }
 
 async function entrarNoApp(user) {
-  if (modoRecuperacao) return;
   const { data: perfil } = await sb.from("profiles").select("nome").eq("id", user.id).maybeSingle();
   me = { id: user.id, nome: perfil?.nome || user.email };
+
   $("#navUser").replaceChildren(
     h("span", {}, me.nome),
-    h("button", { onclick: async () => { await sb.auth.signOut(); location.reload(); } }, "Sair"));
+    botaoTema(),
+    h("button", { onclick: async () => {
+      await sb.auth.signOut();
+      location.replace("entrar.html");
+    } }, "Sair"));
+
   $("#tabs").style.display = "flex";
   $("#tabJog").onclick = showJogador;
   $("#tabMestre").onclick = showMestre;
@@ -365,20 +211,13 @@ function ligarTempoReal() {
 
 function mostrarAviso() {
   if ($("#aviso")) return;
-  $("#view").prepend(h("div", { id: "aviso", class: "card", style: "border-color:#c8382b" },
+  $("#view").prepend(h("div", { id: "aviso", class: "card" },
     h("span", {}, "Esta ficha foi alterada por outra pessoa. "),
     h("button", { onclick: async () => {
       const { data } = await sb.from("sheets").select("*").eq("id", telaFicha).single();
       if (data && fichaAtual) renderFicha(data, fichaAtual.sis, fichaAtual.opts);
     } }, "Recarregar ficha")));
 }
-
-sb?.auth.onAuthStateChange(event => {
-  if (event === "PASSWORD_RECOVERY") {
-    modoRecuperacao = true;
-    telaNovaSenha();
-  }
-});
 
 /* =====================================================================
    DADOS
@@ -585,7 +424,7 @@ function desenharMestre() {
       h("button", { onclick: duplicarSistema }, "Duplicar"),
       h("button", { class: "perigo", onclick: excluirSistema }, "Excluir")),
     h("p", { class: "dica" }, "Código de convite para os jogadores: ",
-      h("strong", { style: "color:#ebe6de;letter-spacing:2px" }, sis.invite_code),
+      h("strong", { style: "color:var(--texto);letter-spacing:2px" }, sis.invite_code),
       " ", h("button", { class: "mini-btn", onclick: () => {
         navigator.clipboard?.writeText(sis.invite_code);
         marcarSalvo("Código copiado");
