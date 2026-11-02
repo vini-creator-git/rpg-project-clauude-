@@ -33,7 +33,7 @@ function botaoTema() {
 }
 
 /* ---------- SESSÃO ---------- */
-// Usado no hub: se não há login, manda para a página de entrar
+// Usado no index: se não há login, manda para a página de entrar
 async function exigirLogin() {
   const {
     data: { session },
@@ -45,12 +45,12 @@ async function exigirLogin() {
   return session.user;
 }
 
-// Usado nas páginas de login e cadastro: se já há login, vai para o hub
+// Usado nas páginas de login e cadastro: se já há login, vai para o index
 async function pularSeLogado() {
   const {
     data: { session },
   } = await sb.auth.getSession();
-  if (session) location.replace("hub.html");
+  if (session) location.replace("index.html");
 }
 
 /* ---------- MENSAGENS DE ERRO EM PORTUGUÊS ---------- */
