@@ -359,6 +359,8 @@ function renderFicha(sheet, sis, opts = {}) {
     h("div", { class: "ficha-top" },
       h("button", { onclick: opts.voltar }, "← Voltar"),
       h("span", { class: "vazio" }, sis.name + (opts.dono ? " · jogador: " + opts.dono : "")),
+      h("button", { onclick: () => exportarFicha(sheet, sis, "xml") }, "Exportar XML"),
+      h("button", { onclick: () => exportarFicha(sheet, sis, "doc") }, "Exportar .doc"),
       ...(opts.acoes || [])),
     h("div", { class: "cab" },
       campo("Nome do personagem", sheet.name, v => { sheet.name = v; mudou(); }),
@@ -627,6 +629,106 @@ async function excluirSistema() {
   if (error) return alert(error.message);
   mestreSis = null;
   showMestre();
+}
+
+/* =====================================================================
+   EXPORTAR FICHA (XML e .doc)
+   ===================================================================== */
+const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+
+const quebra = s => esc(s).replace(/\n/g, "<br>");
+
+function baixarArquivo(nome, conteudo, tipo) {
+  const blob = new Blob(["\uFEFF" + conteudo], { type: tipo });
+  const url = URL.createObjectURL(blob);
+  const a = h("a", { href: url, download: nome });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function fichaParaXml(sheet, sis) {
+  const d = sheet.data || {};
+  const E = sis.structure;
+  const L = [];
+  L.push('<?xml version="1.0" encoding="UTF-8"?>');
+  L.push(`<ficha nome="${esc(sheet.name)}" sistema="${esc(sis.name)}">`);
+
+  L.push("  <cabecalho>");
+  E.identidade.forEach(l =>
+    L.push(`    <campo nome="${esc(l)}">${esc(d[kIdent(l)])}</campo>`));
+  L.push("  </cabecalho>");
+
+  L.push("  <atributos>");
+  E.atributos.forEach(a =>
+    L.push(`    <atributo nome="${esc(a)}">${esc(d[kAttr(a)])}</atributo>`));
+  L.push("  </atributos>");
+
+  L.push("  <pericias>");
+  E.pericias.forEach(p =>
+    L.push(`    <pericia nome="${esc(p.nome)}" atributo="${esc(p.atributo)}">${esc(d[kPer(p)])}</pericia>`));
+  L.push("  </pericias>");
+
+  L.push("  <pontos>");
+  E.barras.forEach(b => {
+    const max = b.tipo === "fixo" ? b.max : d[kBar(b) + "_max"];
+    const atual = d[kBar(b) + "_atual"];
+    L.push(`    <barra nome="${esc(b.nome)}" tipo="${esc(b.tipo)}" max="${esc(max)}" atual="${esc(atual)}"/>`);
+  });
+  L.push("  </pontos>");
+
+  L.push("  <detalhes>");
+  E.textos.forEach(t =>
+    L.push(`    <texto nome="${esc(t)}">${esc(d[kTxt(t)])}</texto>`));
+  L.push("  </detalhes>");
+
+  L.push("</ficha>");
+  return L.join("\n");
+}
+
+function fichaParaDoc(sheet, sis) {
+  const d = sheet.data || {};
+  const E = sis.structure;
+
+  const tab = linhas => `<table>${linhas.map(([a, b]) =>
+    `<tr><td style="width:35%"><b>${esc(a)}</b></td><td>${quebra(b)}</td></tr>`).join("")}</table>`;
+
+  const barras = E.barras.map(b => {
+    const max = b.tipo === "fixo" ? b.max : d[kBar(b) + "_max"];
+    return [b.nome, `${d[kBar(b) + "_atual"] || 0} / ${max || 0}`];
+  });
+
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${esc(sheet.name)}</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11pt; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; }
+  td { border: 1px solid #888; padding: 4pt 6pt; vertical-align: top; }
+  h1 { font-size: 20pt; }
+  h2 { font-size: 14pt; border-bottom: 1px solid #888; margin-top: 16pt; }
+</style>
+</head>
+<body>
+<h1>${esc(sheet.name)}</h1>
+<p>Sistema: ${esc(sis.name)}</p>
+<h2>Cabeçalho</h2>${tab(E.identidade.map(l => [l, d[kIdent(l)]]))}
+<h2>Atributos</h2>${tab(E.atributos.map(a => [a, d[kAttr(a)]]))}
+<h2>Perícias</h2>${tab(E.pericias.map(p => [`${p.nome} · ${p.atributo}`, d[kPer(p)]]))}
+<h2>Pontos</h2>${tab(barras)}
+<h2>Detalhes</h2>${E.textos.map(t => `<h3>${esc(t)}</h3><p>${quebra(d[kTxt(t)])}</p>`).join("")}
+</body>
+</html>`;
+}
+
+function exportarFicha(sheet, sis, formato) {
+  const base = slug(sheet.name) || "ficha";
+  if (formato === "xml") {
+    baixarArquivo(base + ".xml", fichaParaXml(sheet, sis), "application/xml;charset=utf-8");
+  } else {
+    baixarArquivo(base + ".doc", fichaParaDoc(sheet, sis), "application/msword");
+  }
 }
 
 /* =====================================================================
